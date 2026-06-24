@@ -54,10 +54,10 @@ cp .env.example .env
 Open `.env` and fill in:
 
 ```
-VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_URL=[https://your-project-ref.supabase.co](https://your-project-ref.supabase.co/)
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-ADMIN_PASSWORD=choose-a-password
-API_PORT=8787
+ADMIN_PASSWORD=your-admin-password
+API_PORT=
 ```
 
 `ADMIN_PASSWORD` is the single shared password that gates `/admin` — there's
