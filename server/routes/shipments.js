@@ -135,16 +135,26 @@ router.get('/:id', requireAdmin, wrapAsync(async (req, res) => {
   if (error) throw error;
   if (!shipment) return res.status(404).json({ error: 'Not found' });
 
-  const [{ data: images }, { data: history }] = await Promise.all([
+  const [{ data: images }, { data: history }, { data: updates }] = await Promise.all([
     supabaseAdmin.from('shipment_images').select('*').eq('shipment_id', shipment.id),
     supabaseAdmin
       .from('shipment_status_history')
       .select('*')
       .eq('shipment_id', shipment.id)
       .order('changed_at', { ascending: true }),
+    supabaseAdmin
+      .from('shipment_updates')
+      .select('*')
+      .eq('shipment_id', shipment.id)
+      .order('update_time', { ascending: true }),
   ]);
 
-  res.json({ shipment, images: images || [], history: history || [] });
+  res.json({
+    shipment,
+    images: images || [],
+    history: history || [],
+    updates: updates || [],
+  });
 }));
 
 // ---------- ADMIN: update shipment ----------
@@ -266,17 +276,55 @@ router.get(
     if (error) throw error;
     if (!shipment) return res.status(404).json({ error: 'No shipment found with that tracking number' });
 
-    const [{ data: images }, { data: history }] = await Promise.all([
+    const [{ data: images }, { data: history }, { data: updates }] = await Promise.all([
       supabaseAdmin.from('shipment_images').select('*').eq('shipment_id', shipment.id),
       supabaseAdmin
         .from('shipment_status_history')
         .select('*')
         .eq('shipment_id', shipment.id)
         .order('changed_at', { ascending: true }),
+      supabaseAdmin
+        .from('shipment_updates')
+        .select('*')
+        .eq('shipment_id', shipment.id)
+        .order('update_time', { ascending: true }),
     ]);
 
-    res.json({ shipment, images: images || [], history: history || [] });
+    res.json({ shipment, images: images || [], history: history || [], updates: updates || [] });
   })
 );
+
+// ---------- ADMIN: shipment updates ----------
+router.post('/:id/updates', requireAdmin, wrapAsync(async (req, res) => {
+  const { message, update_time } = req.body;
+
+  if (!message || !message.trim()) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('shipment_updates')
+    .insert({
+      shipment_id: req.params.id,
+      message: message.trim(),
+      update_time: update_time ? new Date(update_time).toISOString() : new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ update: data });
+}));
+
+router.delete('/:id/updates/:updateId', requireAdmin, wrapAsync(async (req, res) => {
+  const { error } = await supabaseAdmin
+    .from('shipment_updates')
+    .delete()
+    .eq('id', req.params.updateId)
+    .eq('shipment_id', req.params.id);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+}));
 
 export default router;

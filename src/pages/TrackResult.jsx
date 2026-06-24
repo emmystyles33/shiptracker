@@ -38,6 +38,7 @@ export default function TrackResult() {
   const { trackingNumber } = useParams();
   const [shipment, setShipment] = useState(null);
   const [images, setImages] = useState([]);
+  const [updates, setUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -52,6 +53,7 @@ export default function TrackResult() {
         if (cancelled) return;
         setShipment(data.shipment);
         setImages(data.images);
+        setUpdates(data.updates || []);
       })
       .catch((err) => {
         if (!cancelled) setError(err.message);
@@ -68,8 +70,14 @@ export default function TrackResult() {
   useEffect(() => {
     if (!shipment) return;
     const refresh = setInterval(() => {
-      api.trackPublic(trackingNumber).then((data) => setShipment(data.shipment)).catch(() => {});
+      api.trackPublic(trackingNumber)
+        .then((data) => {
+          setShipment(data.shipment);
+          setUpdates(data.updates || []);
+        })
+        .catch(() => {});
     }, 30000);
+
     return () => clearInterval(refresh);
   }, [shipment, trackingNumber]);
 
@@ -137,13 +145,6 @@ export default function TrackResult() {
     },
     { label: 'Current Location', value: 'Paris, France' },
     { label: 'Expected Delivery', value: formatFullDate(shipment.estimated_delivery) },
-  ];
-
-  const liveEvents = [
-    { time: '10:45 AM', text: 'Shipment departed Lagos.' },
-    { time: '1:20 PM', text: 'Shipment arrived Paris Hub.' },
-    { time: '2:10 PM', text: 'Customs documents verified.' },
-    { time: '4:30 PM', text: 'Shipment departed Paris.' },
   ];
 
   const trustItems = [
@@ -272,17 +273,25 @@ export default function TrackResult() {
       </section>
 
       <section className="track-result-side-section">
-        <div className="activity-feed-card">
-          <div className="stage-title">Recent Shipment Updates</div>
-          <div className="activity-list">
-            {liveEvents.map((event, index) => (
-              <div key={event.time} className={`activity-item ${index === 0 ? 'activity-newest' : ''}`}>
-                <span>{event.time}</span>
-                <p>{event.text}</p>
-              </div>
-            ))}
+        {updates.length > 0 && (
+          <div className="activity-feed-card">
+            <div className="stage-title">Recent Shipment Updates</div>
+            <div className="activity-list">
+              {updates.map((u) => (
+                <div key={u.id} className="activity-item">
+                  <span>{new Date(u.update_time).toLocaleString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}</span>
+                  <p>{u.message}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="trust-card">
           <div className="stage-title">Trusted Logistics Services</div>

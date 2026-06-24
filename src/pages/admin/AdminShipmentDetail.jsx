@@ -10,9 +10,13 @@ export default function AdminShipmentDetail() {
   const [shipment, setShipment] = useState(null);
   const [images, setImages] = useState([]);
   const [history, setHistory] = useState([]);
+  const [updates, setUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [addingUpdate, setAddingUpdate] = useState(false);
+  const [newMessage, setNewMessage] = useState('');
+  const [newUpdateTime, setNewUpdateTime] = useState('');
   const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
@@ -22,6 +26,7 @@ export default function AdminShipmentDetail() {
       setShipment(data.shipment);
       setImages(data.images);
       setHistory(data.history);
+      setUpdates(data.updates || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -67,6 +72,34 @@ export default function AdminShipmentDetail() {
     } catch (err) {
       setError(err.message);
       setBusy(false);
+    }
+  }
+
+  async function handleAddUpdate(e) {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+    setAddingUpdate(true);
+    try {
+      const { update } = await api.addShipmentUpdate(shipment.id, {
+        message: newMessage.trim(),
+        update_time: newUpdateTime || undefined,
+      });
+      setUpdates((prev) => [...prev, update]);
+      setNewMessage('');
+      setNewUpdateTime('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAddingUpdate(false);
+    }
+  }
+
+  async function handleDeleteUpdate(updateId) {
+    try {
+      await api.deleteShipmentUpdate(shipment.id, updateId);
+      setUpdates((prev) => prev.filter((u) => u.id !== updateId));
+    } catch (err) {
+      setError(err.message);
     }
   }
 
@@ -345,6 +378,113 @@ export default function AdminShipmentDetail() {
               </div>
             </div>
           )}
+
+          <div className="section-card" style={{ marginTop: 20 }}>
+            <div className="section-head">
+              <span className="eyebrow">Shipment Updates</span>
+              <h2 className="section-title">Recent Updates</h2>
+            </div>
+
+            <form onSubmit={handleAddUpdate} style={{ marginBottom: 20 }}>
+              <div style={{ marginBottom: 10 }}>
+                <label className="field-label" style={{ display: 'block', marginBottom: 6 }}>
+                  Update Message
+                </label>
+                <textarea
+                  className="textarea-input"
+                  placeholder="e.g. Shipment departed Lagos. Shipment arrived Paris Hub."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  rows={2}
+                  style={{ minHeight: 70 }}
+                />
+              </div>
+
+              <div style={{ marginBottom: 12 }}>
+                <label className="field-label" style={{ display: 'block', marginBottom: 6 }}>
+                  Update Time
+                  <span style={{ color: 'var(--ink-600)', marginLeft: 6, fontSize: 10 }}>
+                    (leave blank to use current time)
+                  </span>
+                </label>
+                <input
+                  className="text-input"
+                  type="datetime-local"
+                  value={newUpdateTime}
+                  onChange={(e) => setNewUpdateTime(e.target.value)}
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={addingUpdate || !newMessage.trim()}
+                style={{ padding: '8px 20px' }}
+              >
+                {addingUpdate ? 'Adding…' : '+ Add Update'}
+              </button>
+            </form>
+
+            {updates.length === 0 ? (
+              <p style={{ color: 'var(--ink-600)', fontSize: 13, fontFamily: 'var(--font-mono)' }}>
+                No updates yet. Add the first one above.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {updates.map((u) => (
+                  <div
+                    key={u.id}
+                    style={{
+                      background: 'var(--ink-800)',
+                      border: '1px solid var(--ink-700)',
+                      borderRadius: 8,
+                      padding: '10px 14px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      gap: 12,
+                    }}
+                  >
+                    <div>
+                      <span style={{
+                        display: 'block',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 11,
+                        color: 'var(--amber)',
+                        marginBottom: 4,
+                      }}>
+                        {new Date(u.update_time).toLocaleString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                      <span style={{ color: 'var(--paper)', fontSize: 13 }}>
+                        {u.message}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteUpdate(u.id)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--rust)',
+                        cursor: 'pointer',
+                        fontSize: 16,
+                        flexShrink: 0,
+                        padding: '0 4px',
+                      }}
+                      title="Delete this update"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

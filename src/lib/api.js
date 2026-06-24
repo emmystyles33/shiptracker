@@ -54,6 +54,19 @@ export const api = {
 
   getShipment: (id) => request(`/shipments/${id}`),
 
+  getShipmentUpdates: (id) => request(`/shipments/${id}/updates`),
+
+  addShipmentUpdate: (id, payload) =>
+    request(`/shipments/${id}/updates`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteShipmentUpdate: (id, updateId) =>
+    request(`/shipments/${id}/updates/${updateId}`, {
+      method: 'DELETE',
+    }),
+
   updateShipment: (id, payload) =>
     request(`/shipments/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
 
