@@ -1,4 +1,8 @@
 const TOKEN_KEY = 'shiptrack_admin_token';
+const API_BASE_URL = import.meta.env.VITE_API_URL
+  ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
+  : '';
+const API_PREFIX = API_BASE_URL ? `${API_BASE_URL}/api` : '/api';
 
 export function getToken() {
   return sessionStorage.getItem(TOKEN_KEY);
@@ -17,13 +21,22 @@ async function request(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`/api${path}`, { ...options, headers });
-  const data = await res.json().catch(() => ({}));
+  try {
+    const res = await fetch(`${API_PREFIX}${path}`, { ...options, headers });
+    const data = await res.json().catch(() => ({}));
 
-  if (!res.ok) {
-    throw new Error(data.error || `Request failed (${res.status})`);
+    if (!res.ok) {
+      throw new Error(data.error || `Request failed (${res.status})`);
+    }
+    return data;
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(
+        'Unable to connect to the server. Server is waking up or unreachable — please wait a few seconds and try again.'
+      );
+    }
+    throw err;
   }
-  return data;
 }
 
 export const api = {
@@ -55,13 +68,22 @@ export const api = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const res = await fetch('/api/images/upload', {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: formData,
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Upload failed');
-    return data;
+    try {
+      const res = await fetch(`${API_PREFIX}/images/upload`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      return data;
+    } catch (err) {
+      if (err instanceof TypeError) {
+        throw new Error(
+          'Unable to connect to the server. Server is waking up or unreachable — please wait a few seconds and try again.'
+        );
+      }
+      throw err;
+    }
   },
 };
