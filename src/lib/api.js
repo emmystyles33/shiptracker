@@ -1,6 +1,9 @@
 const TOKEN_KEY = 'shiptrack_admin_token';
+const DEFAULT_RENDER_API_URL = 'https://swiftcargo-api.onrender.com';
 const API_BASE_URL = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
+  : import.meta.env.PROD
+  ? DEFAULT_RENDER_API_URL
   : '';
 const API_PREFIX = API_BASE_URL ? `${API_BASE_URL}/api` : '/api';
 
